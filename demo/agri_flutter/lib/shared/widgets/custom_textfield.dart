@@ -8,6 +8,8 @@ class CustomTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final IconData? icon;
   final Function(String)? onChanged;
+  final int? maxLength; // chỉ để dùng khi cần, mặc định null
+
 
   const CustomTextField({
     super.key,
@@ -16,7 +18,8 @@ class CustomTextField extends StatelessWidget {
     this.obscure = false,
     this.keyboardType = TextInputType.text,
     this.icon,
-    this.onChanged, required int maxLength,
+    this.onChanged,
+    this.maxLength, // optional
   });
 
   @override
@@ -31,12 +34,14 @@ class CustomTextField extends StatelessWidget {
         obscureText: obscure,
         keyboardType: keyboardType,
         onChanged: onChanged,
+        maxLength: maxLength,
         style: const TextStyle(fontSize: 16),
         decoration: InputDecoration(
           prefixIcon: icon != null ? Icon(icon, color: AppColors.green) : null,
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.green),
           border: InputBorder.none,
+          counterText: '', // ẩn hiển thị maxLength nếu cần
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),

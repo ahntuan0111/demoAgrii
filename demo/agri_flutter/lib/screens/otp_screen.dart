@@ -30,6 +30,15 @@ class OtpScreen extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Image.asset(
+              'assets/images/logo.png', // đường dẫn logo của bạn
+              height: 30,
+            ),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -45,7 +54,8 @@ class OtpScreen extends StatelessWidget {
               hint: 'Số điện thoại',
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              maxLength: 10, // Adjust the value as needed for your phone number format
+              maxLength:
+                  10, // Adjust the value as needed for your phone number format
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -53,7 +63,10 @@ class OtpScreen extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () {
                   otpController.sendOtp(phoneController.text);
-                  Get.snackbar("Thông báo", "Đã gửi mã OTP đến số ${phoneController.text}");
+                  Get.snackbar(
+                    "Thông báo",
+                    "Đã gửi mã OTP đến số ${phoneController.text}",
+                  );
                   Get.toNamed('/otpVerification');
                 },
                 style: ElevatedButton.styleFrom(

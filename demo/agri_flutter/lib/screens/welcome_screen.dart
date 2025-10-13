@@ -67,7 +67,7 @@ class WelcomeScreen extends StatelessWidget {
                     "Đăng nhập",
                     label: "Đăng nhập",
                     onPressed: () {
-                      Navigator.pushNamed(context, '/login');
+                     Get.toNamed(AppRoutes.login);
                     },
                     background: AppColors.white,
                     borderColor: AppColors.green,

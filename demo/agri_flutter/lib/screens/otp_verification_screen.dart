@@ -46,6 +46,15 @@ class OtpVerificationScreen extends GetView<OtpController> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Image.asset(
+              'assets/images/logo.png', // đường dẫn logo của bạn
+              height: 30,
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),

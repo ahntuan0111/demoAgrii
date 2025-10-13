@@ -20,7 +20,7 @@ class LocationCheckController extends GetxController {
   await Future.delayed(const Duration(milliseconds: 800));
 
   if (Get.isRegistered<LocationCheckController>()) {
-    Get.offAllNamed(AppRoutes.welcome);
+    Get.toNamed(AppRoutes.welcome);
   }
 }
 

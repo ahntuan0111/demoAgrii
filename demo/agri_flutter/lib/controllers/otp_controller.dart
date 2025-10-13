@@ -46,7 +46,7 @@ class OtpController extends GetxController {
       return;
     }
     Get.snackbar("Thành công", "Xác minh OTP thành công!");
-    Get.offAllNamed(AppRoutes.register);
+    Get.toNamed(AppRoutes.register);
   }
 
   void resendOtp() {

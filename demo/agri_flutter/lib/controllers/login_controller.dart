@@ -35,7 +35,8 @@ class LoginController extends GetxController {
     );
 
     // ✅ Điều hướng sang màn hình chính (locationCheck)
-    Get.offAllNamed(AppRoutes.situate);
+    Get.toNamed(AppRoutes.situate);
+
   }
 
   void goToRegister() {

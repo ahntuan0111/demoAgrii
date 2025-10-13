@@ -30,11 +30,11 @@ class RegisterController extends GetxController {
         snackPosition: SnackPosition.BOTTOM);
 
     // Chuyển sang trang đăng nhập
-    Get.offNamed(AppRoutes.login);
+    Get.toNamed(AppRoutes.login);
   }
 
   void goToLogin() {
-    Get.offNamed(AppRoutes.login);
+    Get.toNamed(AppRoutes.login);
   }
 
   @override

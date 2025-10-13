@@ -1,13 +1,14 @@
 
+import 'package:agri_flutter/routes/app_routes.dart';
 import 'package:get/get.dart';
 
 
 class WelcomeController extends GetxController {
   void goToRegister() {
-    // Get.toNamed(Routes.register);
+    Get.toNamed(AppRoutes.register);
   }
 
   void goToLogin() {
-    // Get.toNamed(Routes.login);
+    Get.toNamed(AppRoutes.login);
   }
 }

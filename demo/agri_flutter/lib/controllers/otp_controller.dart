@@ -15,6 +15,12 @@ class OtpController extends GetxController {
       Get.snackbar("Lỗi", "Vui lòng nhập số điện thoại!");
       return;
     }
+
+    if (phone.length != 10 && !phone.startsWith('0')) {
+      Get.snackbar("Lỗi", "Số điện thoại không hợp lệ!");
+      return;
+    }
+
     phoneNumber.value = phone;
     Get.toNamed(AppRoutes.otpVerification);
     startCountdown();
@@ -40,7 +46,7 @@ class OtpController extends GetxController {
       return;
     }
     Get.snackbar("Thành công", "Xác minh OTP thành công!");
-    Get.offAllNamed(AppRoutes.welcome);
+    Get.offAllNamed(AppRoutes.register);
   }
 
   void resendOtp() {

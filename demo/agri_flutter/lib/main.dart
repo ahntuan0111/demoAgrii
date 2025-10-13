@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, 
       title: 'Agrii',
       initialRoute: AppRoutes.locationCheck,
       getPages: AppPages.routes,

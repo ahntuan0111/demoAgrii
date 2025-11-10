@@ -1,18 +1,14 @@
-// src/api/auth/auth.controller.js
 const admin = require('../../config/firebase');
 const User = require('../users/user.model');
 const jwt = require('jsonwebtoken');
-// 1. Thêm BCRYPTJS
 const bcrypt = require('bcryptjs'); 
 
 /**
- * 2. CHUẨN HÓA HÀM TẠO TOKEN
- * Bây giờ sẽ dùng ID của MongoDB (user._id) làm khóa chính
- * để JWT có thể dùng chung cho cả 2 kiểu đăng nhập.
+ * Tạo API Token (JWT của server)
+ * Dùng MongoDB _id để dùng chung cho cả 2 kiểu đăng nhập
  */
 const generateApiToken = (userId, role) => {
   const secret = process.env.JWT_SECRET;
-  // Ký token với MongoDB _id
   return jwt.sign({ userId, role }, secret, { expiresIn: '7d' });
 };
 
@@ -20,7 +16,9 @@ const generateApiToken = (userId, role) => {
 // HÀM ĐĂNG NHẬP BẰNG SĐT (CẬP NHẬT)
 // ===================================
 exports.verifyPhoneTokenAndLogin = async (req, res) => {
-  const { token } = req.body;
+  // 1. ✅ Đọc 'role' từ req.body (do route chèn vào)
+  const { token, role } = req.body; 
+
   if (!token) {
     return res.status(401).json({ message: 'Vui lòng cung cấp token' });
   }
@@ -35,12 +33,12 @@ exports.verifyPhoneTokenAndLogin = async (req, res) => {
       user = new User({
         uid: uid,
         phoneNumber: phone_number,
-        role: 'customer',
+        // 2. ✅ Sử dụng 'role' (nếu có), nếu không thì mặc định là 'customer'
+        role: role || 'customer', 
       });
       await user.save();
     }
     
-    // 3. CẬP NHẬT: Dùng user._id thay vì user.uid
     const apiToken = generateApiToken(user._id, user.role);
 
     res.status(200).json({
@@ -62,40 +60,50 @@ exports.verifyPhoneTokenAndLogin = async (req, res) => {
 };
 
 // ===================================
-// 4. HÀM ĐĂNG KÝ MỚI
+// HÀM ĐĂNG KÝ MỚI (CẬP NHẬT)
 // ===================================
 exports.register = async (req, res) => {
   try {
-    const { fullName, username, password } = req.body;
+    // 3. ✅ Đọc 'role' từ req.body
+    const { fullName, username, password, phoneNumber, role } = req.body;
 
-    // 1. Kiểm tra đầu vào
-    if (!username || !password || !fullName) {
+    // (Kiểm tra đầu vào)
+    if (!username || !password || !fullName || !phoneNumber) {
       return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
     }
 
-    // 2. Kiểm tra user tồn tại
-    const existingUser = await User.findOne({ username: username.toLowerCase() });
+    // (Kiểm tra user tồn tại)
+    const existingUser = await User.findOne({ 
+      $or: [
+        { username: username.toLowerCase() }, 
+        { phoneNumber: phoneNumber }
+      ] 
+    });
     if (existingUser) {
-      return res.status(400).json({ message: 'Tên tài khoản đã tồn tại' });
+      if (existingUser.username === username.toLowerCase()) {
+         return res.status(400).json({ message: 'Tên tài khoản đã tồn tại' });
+      } else {
+         return res.status(400).json({ message: 'Số điện thoại này đã được đăng ký' });
+      }
     }
 
-    // 3. Tạo user mới
-    // (Mật khẩu sẽ tự động được băm nhờ 'pre-save' hook trong model)
+    // 4. ✅ Sử dụng 'role' (nếu có), nếu không thì mặc định là 'customer'
     const user = new User({
       name: fullName,
       username: username.toLowerCase(),
       password: password,
+      phoneNumber: phoneNumber,
+      role: role || 'customer', 
     });
     
     await user.save();
 
-    // 4. Tạo token và trả về
     const apiToken = generateApiToken(user._id, user.role);
 
-    res.status(201).json({ // 201 Created
+    res.status(201).json({
       message: 'Đăng ký thành công',
       token: apiToken,
       user: {
@@ -113,37 +121,32 @@ exports.register = async (req, res) => {
 };
 
 // ===================================
-// 5. HÀM ĐĂNG NHẬP MỚI
+// HÀM ĐĂNG NHẬP (KHÔNG THAY ĐỔI)
 // ===================================
 exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // 1. Kiểm tra đầu vào
     if (!username || !password) {
       return res.status(400).json({ message: 'Vui lòng cung cấp username và password' });
     }
 
-    // 2. Tìm người dùng
     const user = await User.findOne({ username: username.toLowerCase() });
     if (!user) {
       return res.status(401).json({ message: 'Tên tài khoản hoặc mật khẩu không đúng' });
     }
 
-    // 3. Kiểm tra user SĐT (họ không có mật khẩu)
     if (!user.password) {
       return res.status(401).json({ 
         message: 'Tài khoản này được đăng ký qua SĐT. Vui lòng đăng nhập bằng SĐT.' 
       });
     }
 
-    // 4. So sánh mật khẩu
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Tên tài khoản hoặc mật khẩu không đúng' });
     }
 
-    // 5. Tạo token và trả về
     const apiToken = generateApiToken(user._id, user.role);
 
     res.status(200).json({

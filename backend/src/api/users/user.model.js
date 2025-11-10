@@ -1,4 +1,3 @@
-// src/api/users/user.model.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
@@ -7,30 +6,29 @@ const UserSchema = new mongoose.Schema({
   uid: {
     type: String,
     unique: true,
-    sparse: true, // Cho phép null/trống, nhưng nếu có thì phải là duy nhất
+    sparse: true, 
     index: true,
   },
   phoneNumber: {
     type: String,
     unique: true,
-    sparse: true, // Tương tự
+    sparse: true, 
   },
 
   // --- Dùng cho đăng nhập Username/Password ---
   username: {
     type: String,
     unique: true,
-    sparse: true, // Tương tự
+    sparse: true, 
     lowercase: true,
     trim: true,
   },
   password: {
     type: String,
-    // Không 'required' ở đây vì user SĐT sẽ không có
   },
 
   // --- Thông tin chung ---
-  name: { // Sẽ dùng cho 'fullName'
+  name: {
     type: String,
     trim: true,
   },
@@ -39,12 +37,26 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
     unique: true,
-    sparse: true, // Tương tự
+    sparse: true, 
   },
   role: {
     type: String,
+    // ✅ Đảm bảo 'employee' (cho app Lão Nông) có ở đây
     enum: ['customer', 'employee', 'admin'],
-    default: 'customer',
+    default: 'customer', // Mặc định là 'customer'
+  },
+  
+  // --- Vị trí (GeoJSON) ---
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point',
+    },
+    coordinates: {
+      type: [Number], // [Kinh độ (Lon), Vĩ độ (Lat)]
+      default: [0, 0],
+    },
   },
 }, {
   timestamps: true,
@@ -52,7 +64,6 @@ const UserSchema = new mongoose.Schema({
 
 // Mã hóa mật khẩu tự động trước khi lưu
 UserSchema.pre('save', async function(next) {
-  // Chỉ mã hóa nếu mật khẩu được thay đổi (hoặc là user mới)
   if (!this.isModified('password') || !this.password) {
     return next();
   }
@@ -69,5 +80,8 @@ UserSchema.pre('save', async function(next) {
 UserSchema.methods.comparePassword = function(candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
+
+// Index 2dsphere cho tìm kiếm vị trí
+UserSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('User', UserSchema);

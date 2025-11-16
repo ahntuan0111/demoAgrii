@@ -1,7 +1,8 @@
 // Thêm 2 import này
-import 'package:agri_flutter/controllers/auth_controller.dart';
-import 'package:agri_flutter/services/auth_service.dart';
+
 import 'package:get/get.dart';
+
+import '../controllers/auth_controller.dart';
 
 class AuthBinding extends Bindings {
   @override

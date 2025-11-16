@@ -1,6 +1,6 @@
 
-import 'package:agri_flutter/controllers/location_check_controller.dart';
 import 'package:get/get.dart';
+import '../controllers/location_check_controller.dart';
 
 
 class LocationCheckBinding extends Bindings {

@@ -53,4 +53,70 @@ class UserService extends GetxService {
       throw Exception('Không thể kết nối: ${e.toString()}');
     }
   }
+
+  Future<void> submitKyc(String frontUrl, String backUrl, String selfieUrl) async {
+    final headers = await _getAuthHeaders();
+    final uri = Uri.parse('$_baseUrl/users/me/kyc'); // <-- API BE đã tạo
+
+    debugPrint("UserService: Đang gửi KYC lên BE...");
+
+    try {
+      final response = await http.put( // Dùng http.PUT
+        uri,
+        headers: headers,
+        body: jsonEncode({
+          'nationalIdFrontUrl': frontUrl,
+          'nationalIdBackUrl': backUrl,
+          'selfieUrl': selfieUrl,
+        }),
+      );
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw Exception(body['message'] ?? 'Gửi KYC thất bại');
+      }
+
+      debugPrint("UserService: Gửi KYC thành công!");
+      // Trả về (không cần, vì controller đã xử lý)
+
+    } catch (e) {
+      throw Exception('Không thể kết nối: ${e.toString()}');
+    }
+  }
+
+  Future<void> updateManagerProfile({
+    required String operatingArea,
+    required List<String> mainCrops,
+    required String address,
+  }) async {
+    final headers = await _getAuthHeaders();
+    final uri = Uri.parse('$_baseUrl/users/me/manager-profile'); // <-- API BE đã tạo
+
+    debugPrint("UserService: Đang cập nhật hồ sơ Manager...");
+
+    try {
+      final response = await http.put( // Dùng http.PUT
+        uri,
+        headers: headers,
+        body: jsonEncode({
+          'operatingArea': operatingArea,
+          'mainCrops': mainCrops,
+          'address': address,
+        }),
+      );
+
+      final body = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw Exception(body['message'] ?? 'Cập nhật hồ sơ thất bại');
+      }
+
+      debugPrint("UserService: Cập nhật hồ sơ thành công!");
+      // (Lưu lại user mới nếu cần)
+      // final GetStorage _storage = GetStorage();
+      // await _storage.write('user', body['user']);
+
+    } catch (e) {
+      throw Exception('Không thể kết nối: ${e.toString()}');
+    }
+  }
 }

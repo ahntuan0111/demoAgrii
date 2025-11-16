@@ -1,12 +1,11 @@
 // screens/situate_screen.dart (BẢN CHỈNH SỬA HOÀN CHỈNH)
-import 'package:agri_flutter/shared/widgets/custom_snackbar.dart';
-import 'package:agri_flutter/shared/widgets/situate_confirm_button.dart';
-import 'package:agri_flutter/shared/widgets/situate_searchbox.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../controllers/situate_controller.dart';
+import '../shared/widgets/situate_confirm_button.dart';
+import '../shared/widgets/situate_searchbox.dart';
 
 class SituateScreen extends GetView<SituateController> {
   const SituateScreen({super.key});
@@ -102,7 +101,6 @@ class SituateScreen extends GetView<SituateController> {
               }
             }),
             // -----------------------
-
           ],
         );
       }),

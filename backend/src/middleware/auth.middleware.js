@@ -1,37 +1,36 @@
-// src/middleware/auth.middleware.js
 const jwt = require('jsonwebtoken');
 const User = require('../api/users/user.model');
 
-// Middleware: Kiểm tra xem người dùng đã đăng nhập chưa
 exports.protect = async (req, res, next) => {
   let token;
+
+  // Dòng debug 1 (Đã có)
+  console.log('SECRET TRONG MIDDLEWARE:', process.env.JWT_SECRET);
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
 
-      // 1. Xác thực token
+      // === THÊM DÒNG DEBUG 2 NÀY VÀO ===
+      console.log('TOKEN ĐANG KIỂM TRA:', token);
+      // ===================================
+
+      // Dòng này đang báo lỗi:
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // 2. CẬP NHẬT: Tìm user bằng MongoDB ID (decoded.userId)
-      // thay vì 'uid' của Firebase
-      req.user = await User.findById(decoded.userId).select('-password'); // Bỏ qua mật khẩu
+      req.user = await User.findById(decoded.userId).select('-password'); 
 
       if (!req.user) {
-         return res.status(401).json({ message: 'Không tìm thấy người dùng' });
+        return res.status(401).json({ message: 'Không tìm thấy người dùng' });
       }
 
       next();
     } catch (error) {
-      console.error(error);
+      console.error(error); // Lỗi 'invalid signature' sẽ xuất hiện ở đây
       res.status(401).json({ message: 'Xác thực thất bại, token không hợp lệ' });
     }
   }
-
-  if (!token) {
-    res.status(401).json({ message: 'Xác thực thất bại, không tìm thấy token' });
-  }
-};
+},
 
 // Middleware: Kiểm tra vai trò (phân quyền)
 // (Hàm này giữ nguyên, không cần đổi)

@@ -12,111 +12,170 @@ const generateApiToken = (userId, role) => {
   return jwt.sign({ userId, role }, secret, { expiresIn: '7d' });
 };
 
-// ===================================
-// HÀM ĐĂNG NHẬP BẰNG SĐT (CẬP NHẬT)
-// ===================================
-exports.verifyPhoneTokenAndLogin = async (req, res) => {
-  // 1. ✅ Đọc 'role' từ req.body (do route chèn vào)
-  const { token, role } = req.body; 
+// --- 1. CHO APP NÔNG DÂN (CUSTOMER) ---
+// (Phần này giữ nguyên, không thay đổi)
+exports.registerCustomer = async (req, res) => {
+  try {
+    const { fullName, username, password, phoneNumber } = req.body;
+    if (!username || !password || !fullName || !phoneNumber) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
+    }
+    const existingUser = await User.findOne({ $or: [{ username: username.toLowerCase() }, { phoneNumber: phoneNumber }] });
+    if (existingUser) { return res.status(400).json({ message: 'Tên tài khoản hoặc SĐT đã tồn tại' }); }
 
-  if (!token) {
-    return res.status(401).json({ message: 'Vui lòng cung cấp token' });
+    const user = new User({
+      name: fullName,
+      username: username.toLowerCase(),
+      password: password,
+      phoneNumber: phoneNumber,
+      role: 'customer', // Gán cứng
+    });
+    
+    await user.save();
+    const apiToken = generateApiToken(user._id, user.role);
+    res.status(201).json({ token: apiToken, user });
+  } catch (error) { 
+    console.error('Lỗi registerCustomer:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
   }
+};
 
+exports.verifyPhoneCustomer = async (req, res) => {
+  const { token } = req.body; 
+  if (!token) { return res.status(401).json({ message: 'Vui lòng cung cấp token' }); }
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
     const { uid, phone_number } = decodedToken;
+    let user = await User.findOne({ uid: uid });
+    if (!user) {
+      user = new User({ uid: uid, phoneNumber: phone_number, role: 'customer' }); // Gán cứng
+      await user.save();
+    }
+    const apiToken = generateApiToken(user._id, user.role);
+    res.status(200).json({ token: apiToken, user });
+  } catch (error) { 
+    console.error('Lỗi verifyPhoneCustomer:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
+  }
+};
 
+
+// --- 2. CHO APP LÃO NÔNG / TRÁNG NÔNG (MANAGER) ---
+// (ĐÃ CẬP NHẬT THEO LOGIC MỚI CỦA BẠN)
+
+// @desc    Đăng ký Manager (Mặc định 'trangnong', không cần 'reportsTo')
+exports.registerManager = async (req, res) => {
+  try {
+    // 1. ✅ BỎ 'reportsTo' khỏi req.body
+    const { fullName, username, password, phoneNumber } = req.body;
+
+    // 2. ✅ BỎ KIỂM TRA 'reportsTo'
+    // if (!reportsTo) { ... }
+    
+    // (Kiểm tra đầu vào, không còn 'reportsTo')
+    if (!username || !password || !fullName || !phoneNumber) {
+      return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
+    }
+    const existingUser = await User.findOne({ $or: [{ username: username.toLowerCase() }, { phoneNumber: phoneNumber }] });
+    if (existingUser) { return res.status(400).json({ message: 'Tên tài khoản hoặc SĐT đã tồn tại' }); }
+
+    const user = new User({
+      name: fullName,
+      username: username.toLowerCase(),
+      password: password,
+      phoneNumber: phoneNumber,
+      role: 'trangnong', // 3. ✅ GÁN CỨNG LÀ 'trangnong'
+      reportsTo: null, // 4. ✅ MẶC ĐỊNH LÀ 'null'
+    });
+    
+    await user.save();
+    const apiToken = generateApiToken(user._id, user.role);
+    res.status(201).json({ token: apiToken, user });
+
+  } catch (error) { 
+    console.error('Lỗi registerManager:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
+  }
+};
+
+// @desc    Xác thực SĐT Manager (Mặc định 'trangnong', không cần 'reportsTo')
+exports.verifyPhoneManager = async (req, res) => {
+  // 5. ✅ BỎ 'reportsTo' khỏi req.body
+  const { token } = req.body; 
+  if (!token) { return res.status(401).json({ message: 'Vui lòng cung cấp token' }); }
+  
+  try {
+    // 6. ✅ BỎ KIỂM TRA 'reportsTo'
+    
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { uid, phone_number } = decodedToken;
     let user = await User.findOne({ uid: uid });
 
     if (!user) {
       user = new User({
         uid: uid,
         phoneNumber: phone_number,
-        // 2. ✅ Sử dụng 'role' (nếu có), nếu không thì mặc định là 'customer'
-        role: role || 'customer', 
+        role: 'trangnong', // 7. ✅ GÁN CỨNG LÀ 'trangnong'
+        reportsTo: null, // 8. ✅ MẶC ĐỊNH LÀ 'null'
       });
       await user.save();
     }
     
     const apiToken = generateApiToken(user._id, user.role);
-
-    res.status(200).json({
-      message: 'Xác thực thành công',
-      token: apiToken,
-      user: {
-        id: user._id,
-        uid: user.uid,
-        phoneNumber: user.phoneNumber,
-        role: user.role,
-        name: user.name,
-      },
-    });
-
-  } catch (error) {
-    console.error('Lỗi xác thực token:', error);
-    res.status(401).json({ message: 'Token không hợp lệ hoặc đã hết hạn' });
+    res.status(200).json({ token: apiToken, user });
+  } catch (error) { 
+    console.error('Lỗi verifyPhoneManager:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
   }
 };
 
-// ===================================
-// HÀM ĐĂNG KÝ MỚI (CẬP NHẬT)
-// ===================================
-exports.register = async (req, res) => {
+// --- 3. CHO APP VẬT TƯ (VTNN / STORE) ---
+// (Các hàm 'registerStore' và 'verifyPhoneStore' giữ nguyên, không đổi)
+exports.registerStore = async (req, res) => {
   try {
-    // 3. ✅ Đọc 'role' từ req.body
-    const { fullName, username, password, phoneNumber, role } = req.body;
+    const { fullName, username, password, phoneNumber } = req.body;
+    // (Kiểm tra đầu vào và user tồn tại...)
+    const existingUser = await User.findOne({ $or: [{ username: username.toLowerCase() }, { phoneNumber: phoneNumber }] });
+    if (existingUser) { return res.status(400).json({ message: 'Tên tài khoản hoặc SĐT đã tồn tại' }); }
 
-    // (Kiểm tra đầu vào)
-    if (!username || !password || !fullName || !phoneNumber) {
-      return res.status(400).json({ message: 'Vui lòng cung cấp đầy đủ thông tin' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
-    }
-
-    // (Kiểm tra user tồn tại)
-    const existingUser = await User.findOne({ 
-      $or: [
-        { username: username.toLowerCase() }, 
-        { phoneNumber: phoneNumber }
-      ] 
-    });
-    if (existingUser) {
-      if (existingUser.username === username.toLowerCase()) {
-         return res.status(400).json({ message: 'Tên tài khoản đã tồn tại' });
-      } else {
-         return res.status(400).json({ message: 'Số điện thoại này đã được đăng ký' });
-      }
-    }
-
-    // 4. ✅ Sử dụng 'role' (nếu có), nếu không thì mặc định là 'customer'
     const user = new User({
-      name: fullName,
+      name: fullName, // Tên cửa hàng
       username: username.toLowerCase(),
       password: password,
       phoneNumber: phoneNumber,
-      role: role || 'customer', 
+      role: 'vtnn', // Gán cứng là 'vtnn'
     });
     
     await user.save();
-
     const apiToken = generateApiToken(user._id, user.role);
+    res.status(201).json({ token: apiToken, user });
+  } catch (error) { 
+    console.error('Lỗi registerStore:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
+  }
+};
 
-    res.status(201).json({
-      message: 'Đăng ký thành công',
-      token: apiToken,
-      user: {
-        id: user._id,
-        username: user.username,
-        role: user.role,
-        name: user.name,
-      },
-    });
-
-  } catch (error) {
-    console.error('Lỗi đăng ký:', error);
-    res.status(500).json({ message: 'Lỗi server' });
+exports.verifyPhoneStore = async (req, res) => {
+  const { token } = req.body; 
+  if (!token) { return res.status(401).json({ message: 'Vui lòng cung cấp token' }); }
+  try {
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    const { uid, phone_number } = decodedToken;
+    let user = await User.findOne({ uid: uid });
+    if (!user) {
+      user = new User({
+        uid: uid,
+        name: `Cửa hàng ${phone_number.slice(-4)}`, // Tên tạm
+        phoneNumber: phone_number,
+        role: 'vtnn' // Gán cứng
+      });
+      await user.save();
+    }
+    const apiToken = generateApiToken(user._id, user.role);
+    res.status(200).json({ token: apiToken, user });
+  } catch (error) { 
+    console.error('Lỗi verifyPhoneStore:', error);
+    res.status(500).json({ message: 'Lỗi server' }); 
   }
 };
 

@@ -1,8 +1,10 @@
-import 'package:agri_flutter/routes/app_routes.dart';
-import 'package:agri_flutter/shared/themes/app_colors.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get/instance_manager.dart';
+
+import '../routes/app_routes.dart';
+import '../shared/themes/app_colors.dart';
 
 
 class WelcomeScreen extends StatelessWidget {

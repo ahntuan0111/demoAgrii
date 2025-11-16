@@ -1,6 +1,8 @@
 import 'dart:async';
-import 'package:agri_flutter/routes/app_routes.dart';
+
 import 'package:get/get.dart';
+
+import '../routes/app_routes.dart';
 
 
 class OtpController extends GetxController {
@@ -27,7 +29,7 @@ class OtpController extends GetxController {
   }
 
   void startCountdown() {
-    countdown.value = 30;
+    countdown.value = 60;
     isResendEnabled.value = false;
     timer?.cancel();
     timer = Timer.periodic(const Duration(seconds: 1), (t) {

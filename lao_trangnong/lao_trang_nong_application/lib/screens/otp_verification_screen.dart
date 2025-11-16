@@ -1,8 +1,10 @@
-import 'package:agri_flutter/controllers/auth_controller.dart'; // 1. Đổi import
-import 'package:agri_flutter/shared/themes/app_colors.dart';
-import 'package:agri_flutter/shared/widgets/custom_textfield.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../controllers/auth_controller.dart';
+import '../shared/themes/app_colors.dart';
+import '../shared/widgets/custom_textfield.dart';
 
 // 2. Đổi thành GetView<AuthController>
 class OtpVerificationScreen extends GetView<AuthController> {
@@ -14,14 +16,16 @@ class OtpVerificationScreen extends GetView<AuthController> {
     // 4. Sửa hàm handleInput
     void handleInput(String value, int index) {
       if (value.isNotEmpty && index < 5) {
-        FocusScope.of(context)
-            .requestFocus(controller.otpFocusNodes[index + 1]);
+        Future.microtask(() {
+          controller.otpFocusNodes[index + 1].requestFocus();
+        });
       } else if (value.isEmpty && index > 0) {
-        FocusScope.of(context)
-            .requestFocus(controller.otpFocusNodes[index - 1]);
+        Future.microtask(() {
+          controller.otpFocusNodes[index - 1].requestFocus();
+        });
       }
-      // Không cần gán controller.otpCode.value ở đây
     }
+
 
     return Scaffold(
       backgroundColor: AppColors.white,

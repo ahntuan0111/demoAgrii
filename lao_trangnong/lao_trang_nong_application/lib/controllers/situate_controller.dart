@@ -1,8 +1,8 @@
 // controllers/situate_controller.dart (BẢN CHỈNH SỬA HOÀN CHỈNH)
-import 'package:agri_flutter/services/location_service.dart';
-import 'package:agri_flutter/services/user_service.dart'; // <-- 1. IMPORT
 import 'package:get/get.dart';
 import 'package:latlong2/latlong.dart';
+import '../services/location_service.dart';
+import '../services/user_service.dart';
 import '../shared/widgets/custom_snackbar.dart';
 import '../routes/app_routes.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -66,7 +66,7 @@ class SituateController extends GetxController {
         'Đã lưu vị trí của bạn!', // Thông báo mới
       );
       // Đi đến màn hình chính
-      Get.toNamed(AppRoutes.bottomNavigation);
+      Get.toNamed(AppRoutes.permission);
 
     } catch (e) {
       // Nếu lỗi API (vd: mất mạng, lỗi server)

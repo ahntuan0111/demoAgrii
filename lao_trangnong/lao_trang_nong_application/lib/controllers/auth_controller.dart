@@ -1,11 +1,12 @@
+// controllers/auth_controller.dart (CHO APP LÃO NÔNG / TRÁNG NÔNG)
 import 'dart:async';
-import 'package:agri_flutter/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:shared_preferences/shared_preferences.dart'; // <-- Đã xóa
 
+import '../routes/app_routes.dart';
 import '../services/auth_service.dart';
 
 class AuthController extends GetxController {
@@ -27,6 +28,8 @@ class AuthController extends GetxController {
   final registerPasswordController = TextEditingController();
   final isRegisterPasswordHidden = true.obs;
 
+  // --- (Đã xóa laonongList và selectedLaoNongId) ---
+
   // --- Controllers cho Đăng nhập ---
   final loginUsernameController = TextEditingController();
   final loginPasswordController = TextEditingController();
@@ -36,18 +39,11 @@ class AuthController extends GetxController {
   final phoneController = TextEditingController();
   final verificationId = ''.obs;
   final List<TextEditingController> otpFields = List.generate(
-    6,
-        (index) => TextEditingController(),
-  );
+      6, (index) => TextEditingController());
   final List<FocusNode> otpFocusNodes = List.generate(
-    6,
-        (index) => FocusNode(),
-  );
+      6, (index) => FocusNode());
 
-  // --- BIẾN MỚI ---
-  // Dùng để lưu SĐT đã được xác thực
   final verifiedPhoneNumber = Rxn<String>();
-
   final isResendEnabled = false.obs;
   final countdown = 30.obs;
   Timer? _timer;
@@ -59,6 +55,7 @@ class AuthController extends GetxController {
     if (otpFocusNodes.isNotEmpty) {
       otpFocusNodes[0].requestFocus();
     }
+    // (Đã xóa fetchLaoNongList)
   }
 
   // --- Hủy (Dispose) ---
@@ -81,15 +78,12 @@ class AuthController extends GetxController {
     super.onClose();
   }
 
-  // --- ------------------ ---
-  // --- LOGIC ĐĂNG NHẬP (Giữ nguyên - Đã đúng) ---
-  // --- ------------------ ---
+  // --- LOGIC ĐĂNG NHẬP (Giữ nguyên) ---
   void toggleLoginPasswordVisibility() {
     isLoginPasswordHidden.value = !isLoginPasswordHidden.value;
   }
 
   Future<void> login() async {
-    // (Hàm login của bạn đã đúng, giữ nguyên)
     if (!loginFormKey.currentState!.validate()) return;
     isLoading(true);
     try {
@@ -98,26 +92,17 @@ class AuthController extends GetxController {
       final response = await _authService.login(username, password);
       await _storage.write('apiToken', response['token']);
       await _storage.write('user', response['user']);
-      Get.snackbar(
-        "Thành công",
-        "Đăng nhập thành công!",
-        snackPosition: SnackPosition.BOTTOM,
-      );
-      Get.offAllNamed(AppRoutes.situate);
+      Get.snackbar("Thành công", "Đăng nhập thành công!");
+      Get.offAllNamed(AppRoutes.situate); // Chuyển đến SituateScreen
     } catch (e) {
-      Get.snackbar(
-        "Đăng nhập thất bại",
-        e.toString().replaceFirst("Exception: ", ""),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar("Đăng nhập thất bại",
+          e.toString().replaceFirst("Exception: ", ""));
     } finally {
       isLoading(false);
     }
   }
 
-  // --- ------------------- ---
-  // --- LOGIC ĐĂNG KÝ (ĐÃ CẬP NHẬT) ---
-  // --- ------------------- ---
+  // --- LOGIC ĐĂNG KÝ (Đã sửa, không cần 'reportsTo') ---
   void toggleRegisterPasswordVisibility() {
     isRegisterPasswordHidden.value = !isRegisterPasswordHidden.value;
   }
@@ -125,12 +110,14 @@ class AuthController extends GetxController {
   Future<void> register() async {
     if (!registerFormKey.currentState!.validate()) return;
 
-    // Kiểm tra xem SĐT đã được xác thực chưa
+    // 1. Kiểm tra SĐT (Giữ nguyên)
     if (verifiedPhoneNumber.value == null) {
       Get.snackbar("Lỗi", "Vui lòng xác thực SĐT trước khi đăng ký.");
-      Get.offNamed(AppRoutes.otp); // Đưa người dùng về màn hình OTP
+      Get.offNamed(AppRoutes.otp);
       return;
     }
+
+    // (Đã xóa kiểm tra selectedLaoNongId)
 
     isLoading(true);
     try {
@@ -138,39 +125,31 @@ class AuthController extends GetxController {
       final username = registerUsernameController.text.trim();
       final password = registerPasswordController.text.trim();
 
-      // 7. GỌI API THẬT (với SĐT đã xác thực)
+      // 3. ✅ SỬA LỖI: GỌI API VỚI ĐÚNG 4 THAM SỐ
       final response = await _authService.register(
         fullName,
         username,
         password,
-        verifiedPhoneNumber.value!, // <-- THÊM SĐT VÀO
+        verifiedPhoneNumber.value!,
       );
+      // ---------------------------------
 
-      // 8. ĐĂNG KÝ THÀNH CÔNG -> ĐĂNG NHẬP LUÔN
+      // 4. ĐĂNG KÝ THÀNH CÔNG -> ĐĂNG NHẬP LUÔN
       await _storage.write('apiToken', response['token']);
       await _storage.write('user', response['user']);
 
-      Get.snackbar(
-        "Thành công",
-        "Đăng ký thành công!",
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar("Thành công", "Đăng ký thành công!");
       Get.offAllNamed(AppRoutes.situate);
     } catch (e) {
-      Get.snackbar(
-        "Đăng ký thất bại",
-        e.toString().replaceFirst("Exception: ", ""),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.snackbar("Đăng ký thất bại",
+          e.toString().replaceFirst("Exception: ", ""));
     } finally {
       isLoading(false);
-      verifiedPhoneNumber.value = null; // Xóa SĐT sau khi đăng ký
+      verifiedPhoneNumber.value = null;
     }
   }
 
-  // --- ------------------- ---
-  // --- LOGIC OTP (ĐÃ CẬP NHẬT) ---
-  // --- ------------------- ---
+  // --- LOGIC OTP (ĐÃ SỬA LỖI LOADING) ---
   void startCountdown() {
     countdown.value = 30;
     isResendEnabled.value = false;
@@ -197,30 +176,29 @@ class AuthController extends GetxController {
       await _firebaseAuth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Tự động xác thực
-          final userCredential = await _firebaseAuth.signInWithCredential(
-            credential,
-          );
-          if (userCredential.user != null) {
-            verifiedPhoneNumber.value = userCredential.user!.phoneNumber;
-            Get.offNamed(AppRoutes.register); // Đi đến màn hình Đăng ký
-          }
+          await _handleOtpSuccess(credential);
+          isLoading(false); // <-- Tắt loading khi hoàn tất
         },
         verificationFailed: (FirebaseAuthException e) {
           Get.snackbar("Lỗi", "Gửi OTP thất bại: ${e.message}");
+          isLoading(false); // <-- Tắt loading khi lỗi
         },
         codeSent: (String verId, int? resendToken) {
           verificationId.value = verId;
+          isLoading(false); // <-- Tắt loading khi đã gửi (để sang màn mới)
           Get.toNamed('/otpVerification');
           startCountdown();
         },
         codeAutoRetrievalTimeout: (String verId) {
+          // --- ✅ SỬA LỖI "LOAD LIÊN TỤC" TẠI ĐÂY ---
           verificationId.value = verId;
+          isLoading(false); // 1. TẮT LOADING
+          Get.snackbar("Hết giờ", "Hết thời gian chờ SMS. Vui lòng thử lại.");
+          // ------------------------------------
         },
       );
     } catch (e) {
       Get.snackbar("Lỗi", "Không thể gửi OTP: ${e.toString()}");
-    } finally {
       isLoading(false);
     }
   }
@@ -244,67 +222,40 @@ class AuthController extends GetxController {
         smsCode: code,
       );
 
-      final userCredential = await _firebaseAuth.signInWithCredential(
-        credential,
-      );
+      await _handleOtpSuccess(credential);
 
-      // --- SỬA LOGIC TẠI ĐÂY ---
-      if (userCredential.user != null) {
-        // 1. Lấy SĐT đã xác thực
-        verifiedPhoneNumber.value = userCredential.user!.phoneNumber;
-
-        // 2. Xóa các ô OTP
-        for (var controller in otpFields) {
-          controller.clear();
-        }
-
-        // 3. Thông báo và điều hướng đến màn hình Đăng ký
-        Get.snackbar(
-          "Thành công",
-          "Xác minh SĐT thành công! Vui lòng hoàn tất đăng ký.",
-        );
-        Get.offNamed(AppRoutes.register); // <-- ĐÂY LÀ SỬA ĐỔI QUAN TRỌNG
-      }
-      // --------------------------
     } on FirebaseAuthException catch (e) {
       Get.snackbar("Lỗi", "Mã OTP không đúng hoặc hết hạn!");
+      isLoading(false);
     } catch (e) {
       Get.snackbar("Lỗi", e.toString().replaceFirst("Exception: ", ""));
-    } finally {
       isLoading(false);
     }
   }
 
-  /// Hàm nội bộ để gọi API Node.js sau khi Firebase xác thực thành công
-  Future<void> _verifyFirebaseTokenAndLogin() async {
-    User? user = _firebaseAuth.currentUser;
-    if (user == null) {
-      throw Exception("Không tìm thấy người dùng Firebase!");
-    }
-
-    // Lấy Firebase ID Token
-    String? firebaseToken = await user.getIdToken();
-    if (firebaseToken == null) {
-      throw Exception("Không thể lấy Firebase token!");
-    }
-
-    // GỌI API NODE.JS CỦA BẠN
-    final response = await _authService.loginOrRegisterWithPhoneToken(
-      firebaseToken,
+  /// Xử lý sau khi OTP thành công (Giữ nguyên)
+  Future<void> _handleOtpSuccess(PhoneAuthCredential credential) async {
+    final userCredential = await _firebaseAuth.signInWithCredential(
+      credential,
     );
 
-    // LƯU TOKEN SERVER VÀ USER
-    await _storage.write('apiToken', response['token']);
-    await _storage.write('user', response['user']);
-
-    Get.snackbar("Thành công", "Đăng nhập bằng SĐT thành công!");
-    Get.offAllNamed(AppRoutes.situate); // Chuyển đến màn hình chính
+    if (userCredential.user != null) {
+      verifiedPhoneNumber.value = userCredential.user!.phoneNumber;
+      for (var controller in otpFields) {
+        controller.clear();
+      }
+      Get.snackbar(
+        "Thành công",
+        "Xác minh SĐT thành công! Vui lòng hoàn tất đăng ký.",
+      );
+      Get.offNamed(AppRoutes.register);
+    }
   }
 
-  // --- ------------------- ---
-  // --- VALIDATION METHODS ---
-  // --- ------------------- ---
+  // --- ❌ XÓA BỎ HÀM CŨ _verifyFirebaseTokenAndLogin() ---
+  // (Hàm này đã bị xóa)
 
+  // --- VALIDATION & NAVIGATION (Giữ nguyên) ---
   String? validateUsername(String? value) {
     if (value == null || value.isEmpty) {
       return "Tên tài khoản không được để trống";
@@ -342,17 +293,11 @@ class AuthController extends GetxController {
     return null;
   }
 
-  // --- ------------------- ---
-  // --- NAVIGATION ---
-  // --- ------------------- ---
-
   void goToLogin() {
     Get.offNamed(AppRoutes.login);
   }
 
   void goToRegister() {
-    // Chúng ta nên đi đến màn hình OTP trước khi đăng ký
-    // Giả sử route của OtpScreen là 'otp'
     Get.offNamed(AppRoutes.otp);
   }
 }

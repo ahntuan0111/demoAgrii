@@ -1,10 +1,11 @@
-import 'package:agri_flutter/shared/themes/app_colors.dart';
-import 'package:agri_flutter/shared/widgets/custom_button.dart';
-import 'package:agri_flutter/shared/widgets/custom_textfield.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../controllers/auth_controller.dart';
+import '../shared/themes/app_colors.dart';
+import '../shared/widgets/custom_button.dart';
+import '../shared/widgets/custom_textfield.dart';
 
 class RegisterScreen extends GetView<AuthController> {
   const RegisterScreen({super.key});

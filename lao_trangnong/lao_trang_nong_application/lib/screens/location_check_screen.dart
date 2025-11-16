@@ -1,8 +1,10 @@
 // screens/location_check_screen.dart (BẢN CHỈNH SỬA HOÀN CHỈNH)
-import 'package:agri_flutter/controllers/location_check_controller.dart';
-import 'package:agri_flutter/shared/themes/app_colors.dart';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
+import '../controllers/location_check_controller.dart';
+import '../shared/themes/app_colors.dart';
 
 
 class LocationCheckScreen extends GetView<LocationCheckController> {

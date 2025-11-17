@@ -7,25 +7,22 @@ import '../models/manager_order_model.dart';
 import '../routes/app_routes.dart';
 import '../screens/order_reception_screen.dart';
 import '../services/order_service.dart';
-// --- ✅ 1. BẬT API SERVICE ---
 
 class OrderReceptionController extends GetxController with WidgetsBindingObserver {
-  // --- ✅ 2. BẬT API SERVICE ---
   final OrderService _orderService = Get.find<OrderService>();
 
   final isLoading = true.obs;
   final orderList = <ManagerOrder>[].obs;
   final isOnline = true.obs;
 
-  final currencyFormatter =
-  NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
+  final currencyFormatter = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
   final distanceFormatter = NumberFormat("###.0#", "vi_VN");
 
   @override
   void onInit() {
     super.onInit();
     WidgetsBinding.instance.addObserver(this);
-    fetchOrders(); // Gọi hàm fetchOrders đã sửa
+    fetchOrders();
   }
 
   @override
@@ -41,17 +38,13 @@ class OrderReceptionController extends GetxController with WidgetsBindingObserve
     }
   }
 
-  /// --- ✅ 3. VIẾT LẠI HÀM FETCHORDERS ĐỂ GỌI API ---
   Future<void> fetchOrders() async {
-    // Nếu offline, không làm gì cả
     if (!isOnline.value) {
       orderList.clear();
       return;
     }
-
     isLoading(true);
     try {
-      // Gọi API từ service
       final List<ManagerOrder> orders = await _orderService.getManagerOrders();
       orderList.assignAll(orders);
     } catch (e) {
@@ -60,30 +53,26 @@ class OrderReceptionController extends GetxController with WidgetsBindingObserve
         e.toString().replaceFirst("Exception: ", ""),
         snackPosition: SnackPosition.BOTTOM,
       );
-      orderList.clear(); // Xóa list nếu có lỗi
+      orderList.clear();
     } finally {
       isLoading(false);
     }
   }
 
-  /// Xử lý nút gạt Online/Offline
   void toggleOnlineStatus(bool value) {
     isOnline.value = value;
     if (value) {
-      fetchOrders(); // Tải API khi bật online
+      fetchOrders();
     } else {
-      orderList.clear(); // Xóa đơn khi offline
+      orderList.clear();
     }
   }
 
-  /// Xử lý nút "Chi tiết"
   void viewDetail(ManagerOrder order) {
-    Get.snackbar("Thông báo", "Chuyển đến chi tiết đơn: ${order.id.substring(0, 8)}...");
-    // TODO: Mở màn hình chi tiết thật
-    // Get.toNamed(AppRoutes.orderDetail, arguments: order);
+    // Bạn có thể điều hướng đến màn hình chi tiết đơn hàng (chỉ xem) ở đây
+    Get.snackbar("Thông báo", "Xem chi tiết đơn: ${order.id}");
   }
 
-  /// Hiển thị popup xác nhận
   void showAcceptConfirmation(ManagerOrder order) {
     Get.dialog(
       AcceptOrderDialog(order: order),
@@ -91,7 +80,6 @@ class OrderReceptionController extends GetxController with WidgetsBindingObserve
     );
   }
 
-  /// Xử lý Gọi khách
   Future<void> callCustomer(String phoneNumber) async {
     if (phoneNumber.isEmpty) {
       Get.snackbar("Lỗi", "Nông dân này chưa cập nhật SĐT.");
@@ -105,31 +93,49 @@ class OrderReceptionController extends GetxController with WidgetsBindingObserve
     }
   }
 
-  /// --- ✅ 4. VIẾT LẠI HÀM ACCEPTORDER ĐỂ GỌI API ---
   Future<void> acceptOrder(ManagerOrder order) async {
-    // (Chúng ta không dùng isLoading(true) ở đây để tránh
-    // làm toàn bộ màn hình bị mờ, chỉ xử lý trong try/catch)
     try {
-      // 1. Gọi API "Nhận đơn"
       await _orderService.acceptDelivery(order.id);
-
-      // 2. Đóng popup
-      Get.back();
+      Get.back(); // Đóng dialog
       Get.snackbar("Thành công", "Đã nhận đơn. Chuẩn bị đi lấy hàng.");
 
-      // 3. Xóa đơn hàng khỏi danh sách (cập nhật UI)
-      orderList.remove(order);
+      // Cập nhật lại danh sách để UI đổi trạng thái ngay lập tức
+      fetchOrders();
 
-      // 4. Điều hướng đến màn hình Lấy hàng (Map)
+      // Điều hướng đến màn hình Lấy hàng
       Get.toNamed(AppRoutes.pickupMap, arguments: order);
-
     } catch (e) {
-      Get.back(); // Đóng popup nếu lỗi
-      Get.snackbar(
-        "Nhận đơn thất bại",
-        e.toString().replaceFirst("Exception: ", ""),
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      Get.back();
+      Get.snackbar("Nhận đơn thất bại", e.toString().replaceFirst("Exception: ", ""), snackPosition: SnackPosition.BOTTOM);
+    }
+  }
+
+  // --- ✅ HÀM MỚI: XỬ LÝ LOGIC ĐIỀU HƯỚNG THÔNG MINH ---
+  void handleOrderAction(ManagerOrder order) {
+    switch (order.status) {
+      case 'ready_for_pickup':
+      // Trạng thái 1: Chưa nhận -> Hiện Popup nhận đơn
+        showAcceptConfirmation(order);
+        break;
+
+      case 'awaiting_payment':
+      // Trạng thái 2: Đã nhận, đang đi lấy -> Mở lại bản đồ Lấy hàng (PickupMap)
+        Get.toNamed(AppRoutes.pickupMap, arguments: order);
+        break;
+
+      case 'out_for_delivery':
+      // Trạng thái 3: Đã lấy, đang đi giao -> Mở bản đồ Giao hàng (DeliveryMap)
+      // (Hiện tại nếu bạn chưa có DeliveryMap, có thể dùng tạm PickupMap hoặc hiển thị thông báo)
+        Get.snackbar("Thông báo", "Tiếp tục giao hàng cho khách: ${order.customerName}");
+        // TODO: Get.toNamed(AppRoutes.deliveryMap, arguments: order);
+        break;
+
+      case 'delivered':
+        Get.snackbar("Thông báo", "Đơn hàng đã giao thành công.");
+        break;
+
+      default:
+        Get.snackbar("Thông báo", "Trạng thái đơn hàng: ${order.status}");
     }
   }
 }

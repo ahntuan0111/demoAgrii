@@ -58,6 +58,7 @@ dependencies:
   dropdown_button2: ^2.3.9
   url_launcher: ^6.3.2
   dotted_border: ^2.1.0
+  firebase_app_check: ^0.4.1+2
 
 dev_dependencies:
   flutter_test:

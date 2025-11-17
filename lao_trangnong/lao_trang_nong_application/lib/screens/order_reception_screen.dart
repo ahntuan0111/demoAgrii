@@ -1,4 +1,3 @@
-// screens/order_reception_screen.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -44,7 +43,6 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
     );
   }
 
-  // (AppBar và _buildOnlineToggle giữ nguyên)
   AppBar _buildAppBar() {
     return AppBar(
       backgroundColor: Colors.green.shade800,
@@ -83,7 +81,7 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
                 ),
                 Text(
                   controller.isOnline.value
-                      ? 'Đơn được hiển thị theo thời gian mới nhất' // <-- Sửa text
+                      ? 'Đơn được hiển thị theo thời gian mới nhất'
                       : 'Bật để xem các đơn hàng mới',
                   style: const TextStyle(fontSize: 13, color: Colors.grey),
                 )
@@ -100,11 +98,37 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
     );
   }
 
-  // Card cho mỗi Đơn hàng
+  // --- ✅ HÀM BUILD CARD ĐÃ ĐƯỢC SỬA LOGIC ---
   Widget _buildOrderCard(ManagerOrder order, OrderReceptionController controller) {
-    bool canAccept = order.status == 'ready_for_pickup';
-    bool isDelivering = order.status == 'out_for_delivery';
-    bool isDelivered = order.status == 'delivered';
+
+    // 1. Xác định trạng thái nút bấm (Resume flow logic)
+    String buttonText = 'Xem chi tiết';
+    Color buttonColor = Colors.grey;
+    bool isButtonEnabled = true;
+
+    switch (order.status) {
+      case 'ready_for_pickup':
+        buttonText = 'Nhận đơn';
+        buttonColor = Colors.green.shade700;
+        break;
+      case 'awaiting_payment':
+        buttonText = 'Tiếp tục lấy hàng'; // Trạng thái đang đi lấy
+        buttonColor = Colors.orange.shade700;
+        break;
+      case 'out_for_delivery':
+        buttonText = 'Tiếp tục giao hàng'; // Trạng thái đang đi giao
+        buttonColor = Colors.blue.shade700;
+        break;
+      case 'delivered':
+      case 'completed':
+        buttonText = 'Đã giao thành công';
+        buttonColor = Colors.grey;
+        isButtonEnabled = false; // Đơn đã xong, không bấm được nữa
+        break;
+      default:
+        buttonText = 'Trạng thái: ${order.status}';
+        isButtonEnabled = false;
+    }
 
     return Card(
       elevation: 1,
@@ -122,26 +146,19 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
                 Text('DH-${order.id.substring(0, 8)}...',
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
 
-                // --- ✅ SỬA LỖI 1 TẠI ĐÂY ---
-                // (Thêm '?? 0.0' để xử lý null)
-                // (Hoặc có thể ẩn luôn Container này nếu bạn muốn)
+                // Sửa lỗi null distance
                 Container(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    // Thêm '?? 0.0'
                     '${controller.distanceFormatter.format(order.distance ?? 0.0)} km',
                     style: const TextStyle(
-                        color: Colors.blue,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12),
+                        color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
-                // --- KẾT THÚC SỬA LỖI 1 ---
               ],
             ),
             InkWell(
@@ -150,9 +167,9 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
                   style: TextStyle(color: Colors.grey, fontSize: 12)),
             ),
             const Divider(height: 24),
-            // (Các _buildInfoRow và Nút bấm giữ nguyên)
-            _buildInfoRow(
-                Icons.location_on_outlined, 'Giao hàng', order.shippingAddress),
+
+            // Các dòng thông tin
+            _buildInfoRow(Icons.location_on_outlined, 'Giao hàng', order.shippingAddress),
             const SizedBox(height: 12),
             _buildInfoRow(Icons.receipt_long_outlined, 'Tiền hàng',
                 controller.currencyFormatter.format(order.totalPrice)),
@@ -161,6 +178,8 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
                 controller.currencyFormatter.format(order.amountPayableToStore),
                 valueColor: Colors.orange.shade700),
             const SizedBox(height: 20),
+
+            // Dòng Nút bấm
             Row(
               children: [
                 Expanded(
@@ -177,21 +196,20 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: canAccept
-                        ? () => controller.showAcceptConfirmation(order)
-                        : null, // Vô hiệu hóa nút
+                    // Gọi hàm điều hướng thông minh
+                    onPressed: isButtonEnabled
+                        ? () => controller.handleOrderAction(order)
+                        : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade700,
+                      backgroundColor: buttonColor,
                       disabledBackgroundColor: Colors.grey.shade300,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: Text(
-                        isDelivering ? 'Đang giao' :
-                        isDelivered ? 'Đã giao' :
-                        'Nhận đơn',
+                        buttonText,
                         style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: canAccept ? Colors.white : Colors.black54
+                            color: isButtonEnabled ? Colors.white : Colors.black54
                         )
                     ),
                   ),
@@ -204,7 +222,6 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
     );
   }
 
-  // (Giữ nguyên _buildInfoRow)
   Widget _buildInfoRow(IconData icon, String label, String value,
       {Color? valueColor}) {
     return Row(
@@ -229,7 +246,7 @@ class OrderReceptionScreen extends GetView<OrderReceptionController> {
   }
 }
 
-// --- POPUP DIALOG (WIDGET MỚI) ---
+// --- POPUP DIALOG ---
 class AcceptOrderDialog extends StatelessWidget {
   final ManagerOrder order;
   final OrderReceptionController controller = Get.find<OrderReceptionController>();
@@ -246,13 +263,12 @@ class AcceptOrderDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // (Header giữ nguyên)
+            // Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Chi tiết đơn hàng',
-                    style:
-                    TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Get.back(),
@@ -266,9 +282,8 @@ class AcceptOrderDialog extends StatelessWidget {
                 style: const TextStyle(color: Colors.grey)),
             const Divider(height: 24),
 
-            // (Danh sách hàng giữ nguyên)
-            const Text('Danh sách hàng',
-                style: TextStyle(fontWeight: FontWeight.w500)),
+            // Danh sách hàng
+            const Text('Danh sách hàng', style: TextStyle(fontWeight: FontWeight.w500)),
             const SizedBox(height: 8),
             ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 150),
@@ -282,12 +297,9 @@ class AcceptOrderDialog extends StatelessWidget {
             ),
             const Divider(height: 24),
 
-            // --- ✅ SỬA LỖI 2 TẠI ĐÂY ---
-            // (Thêm '?? 0.0' để xử lý null)
+            // Chi tiết tiền & Khoảng cách (Đã sửa lỗi null)
             _buildPriceRow('Khoảng cách',
                 '${controller.distanceFormatter.format(order.distance ?? 0.0)} km'),
-            // --- KẾT THÚC SỬA LỖI 2 ---
-
             _buildPriceRow('Thu COD (Nông dân)',
                 controller.currencyFormatter.format(order.totalPrice)),
             _buildPriceRow('Trả cho VTNN',
@@ -295,7 +307,7 @@ class AcceptOrderDialog extends StatelessWidget {
                 isCod: true),
             const SizedBox(height: 24),
 
-            // (Nút bấm giữ nguyên)
+            // Nút bấm
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -342,7 +354,6 @@ class AcceptOrderDialog extends StatelessWidget {
     );
   }
 
-  // (Các hàm helper _buildItemRow và _buildPriceRow giữ nguyên)
   Widget _buildItemRow(String name, String variant, int quantity) {
     return Container(
       width: double.infinity,

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "398255490644",
+    "project_id": "demoauthen-d01ba",
+    "storage_bucket": "demoauthen-d01ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398255490644:android:dd211031297e8abfa24fc1",
+        "android_client_info": {
+          "package_name": "com.example.agri_flutter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6y04Bm0pVOS3TPo_Nb7fvLAzrbOun1_o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

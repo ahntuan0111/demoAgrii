@@ -176,16 +176,38 @@ async def ai_with_data_endpoint(request: AIWithDataRequest):
                 elif result.get("type") == "farmer":
                     formatted_results += f"{i}. Lão nông: {result.get('product', '')} tại {result.get('location', '')} chuyên về {result.get('crop', '')}\n"
 
-        # Step 3: create prompt for AI with new format including database results
-        ai_prompt = f"""
+        # Step 3: Create a more natural prompt for AI that combines database results with AI knowledge
+        if crop or disease:
+            # For agricultural queries with specific keywords
+            ai_prompt = f"""
 Người dùng hỏi: {request.prompt}
 
 Hãy trả lời câu hỏi một cách tự nhiên, chi tiết và chuyên nghiệp như một chuyên gia nông nghiệp dày dặn kinh nghiệm. 
 Câu trả lời cần thân thiện, dễ hiểu và cung cấp thông tin hữu ích cho người dùng.
 
-Dựa trên thông tin từ cơ sở dữ liệu:\n{formatted_results}
+Dựa trên thông tin từ cơ sở dữ liệu:
+{formatted_results}
 
-Yêu cầu: highlight từ khóa bằng **bold**.
+Yêu cầu:
+1. Trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp
+2. Sử dụng kiến thức nông nghiệp của bạn để bổ sung thông tin chi tiết
+3. Giải thích nguyên nhân, cách phòng tránh và cách xử lý nếu liên quan
+4. Highlight từ khóa quan trọng bằng **bold**
+5. Cung cấp lời khuyên thực tế và hữu ích cho người dùng
+"""
+        else:
+            # For general queries or greetings
+            ai_prompt = f"""
+Người dùng hỏi: {request.prompt}
+
+Hãy trả lời câu hỏi một cách tự nhiên, thân thiện và chuyên nghiệp như một chuyên gia nông nghiệp dày dặn kinh nghiệm. 
+Câu trả lời cần dễ hiểu và cung cấp thông tin hữu ích cho người dùng.
+
+Yêu cầu:
+1. Trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp
+2. Sử dụng kiến thức nông nghiệp của bạn để cung cấp thông tin
+3. Highlight từ khóa quan trọng bằng **bold** nếu có
+4. Cung cấp lời khuyên thực tế và hữu ích cho người dùng
 """
 
         # Try different models in order of preference
@@ -240,12 +262,45 @@ Yêu cầu: highlight từ khóa bằng **bold**.
                     }
                 )
 
+        # Filter out empty or meaningless keywords for suggestion display
+        meaningful_keywords = {
+            k: v
+            for k, v in keywords.items()
+            if k != "model_used"
+            and v
+            and str(v).strip()
+            and len(str(v).strip()) > 1
+            and str(v).strip().lower()
+            not in [
+                "",
+                " ",
+                "có",
+                "là",
+                "và",
+                "các",
+                "có thể",
+                "nên",
+                "cần",
+                "muốn",
+                "giúp",
+                "hỗ trợ",
+                "chào",
+                "xin",
+                "hello",
+                "hi",
+            ]
+        }
+
+        # Only show suggestions button when there are meaningful agricultural terms
+        show_suggestions = bool(meaningful_keywords) and len(formatted_results) > 0
+
         return {
             "answer": answer,
             "keywords": keywords,
             "csvResults": formatted_results,
             "modelUsed": final_model,
             "totalFound": len(formatted_results),
+            "showSuggestions": show_suggestions,
         }
 
     except Exception as e:
@@ -257,8 +312,28 @@ Yêu cầu: highlight từ khóa bằng **bold**.
 async def search_data_endpoint(request: SearchDataRequest):
     """Search data based on prompt"""
     try:
-        # For now, just return empty results
-        return {"results": []}
+        # Extract keywords from the prompt
+        keywords = extract_keywords(request.prompt)
+
+        # Search for data based on extracted keywords
+        search_results = search_data_by_keywords(keywords)
+
+        # Format results
+        formatted_results = []
+        if search_results:
+            for result in search_results:
+                formatted_results.append(
+                    {
+                        "crop": result.get("crop", ""),
+                        "disease": result.get("disease", ""),
+                        "product": result.get("product", ""),
+                        "location": result.get("location", ""),
+                        "farmer_role": result.get("farmer_role", ""),
+                        "action": result.get("action", ""),
+                    }
+                )
+
+        return {"results": formatted_results}
     except Exception as e:
         logger.error(f"Error searching data: {e}")
         raise HTTPException(status_code=500, detail=str(e))

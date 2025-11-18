@@ -4,6 +4,14 @@ from typing import Dict, List, Any
 import logging
 import datetime
 
+# Load environment variables first
+try:
+    from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
+
+    load_dotenv()
+except ImportError:
+    pass  # dotenv not available, continue with default environment variables
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

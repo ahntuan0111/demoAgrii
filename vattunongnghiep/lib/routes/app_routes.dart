@@ -23,4 +23,5 @@ class AppRoutes {
   static const String orderHistory = '/order-history';
   static const String orderDetail = '/order-detail';
   static const String selectPartner = '/select-partner';
+  static const String chatAiBox = '/chat-ai-box';
 }

@@ -1,0 +1,42 @@
+# === Web server ===
+fastapi>=0.68.0
+uvicorn>=0.15.0
+motor>=2.5.1
+
+# === OpenAI API / LLM ===
+openai>=1.0.0
+python-dotenv>=0.19.0
+pydantic
+
+# === Jupyter Notebook ===
+notebook
+
+# === Data & Utils ===
+pandas
+numpy
+requests
+
+# === Giọng nói (Speech Recognition & Text-to-Speech) ===
+SpeechRecognition
+pyaudio
+gTTS
+pyttsx3
+
+# === Xử lý ảnh (Camera / Image AI) ===
+opencv-python
+Pillow
+pytesseract
+
+# === Xử lý JSON và file ===
+json5
+pathlib
+
+# === MongoDB ===
+pymongo>=3.12.0
+
+# === Audio processing ===
+pydub
+
+# === Tùy chọn: cho debug / phân tích ===
+rich
+loguru

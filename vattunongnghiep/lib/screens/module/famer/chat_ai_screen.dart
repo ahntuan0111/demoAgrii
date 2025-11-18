@@ -1,5 +1,7 @@
 import 'package:agri_flutter/screens/module/famer/voice_recorder_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:convert';
 
@@ -12,11 +14,13 @@ import 'suggestions_page.dart';
 import 'my_suggestions_page.dart';
 
 class ChatPage extends StatefulWidget {
-  const ChatPage({super.key});
+  final String? initialQuestion;
+  const ChatPage({super.key, this.initialQuestion});
 
   @override
   _ChatPageState createState() => _ChatPageState();
 }
+
 
 class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   final TextEditingController _controller = TextEditingController();
@@ -37,24 +41,38 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+
+    // Fade animation
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
     _fadeAnimation = CurvedAnimation(
       parent: _fadeController!,
       curve: Curves.easeInOut,
     );
-    // Typing indicator controller (stopped by default)
+
+    // Typing indicator animation
     _typingController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    // Check server health after build is complete
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkServerHealth();
+
+    // Chạy sau khi UI build xong
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // 1) Kiểm tra server
+      await _checkServerHealth();
+
+      // 2) Nhận argument từ GetX và auto gửi
+      final question = Get.arguments;
+      if (question != null && question.toString().trim().isNotEmpty) {
+        _controller.text = question.toString();
+        _sendMessage(); // gửi luôn
+      }
     });
   }
+
 
   Future<void> _checkServerHealth() async {
     final isHealthy = await ApiService.checkHealth();
@@ -1208,7 +1226,7 @@ class _ChatPageState extends State<ChatPage> with TickerProviderStateMixin {
                   child: Opacity(
                     opacity: 0.1, // Faded appearance
                     child: Image.asset(
-                      'assets/img/logo.png',
+                      'assets/images/logo.png',
                       width: 200,
                       height: 200,
                     ),

@@ -148,7 +148,7 @@ class _HomeFamerScreenState extends State<HomeFamerScreen> {
                                 onPressed: () {
                                   String question = _aiQuestionController.text;
                                   if (question.isNotEmpty) {
-                                    Get.toNamed(AppRoutes.chatBox,
+                                    Get.toNamed(AppRoutes.chatAiBox,
                                         arguments: question);
                                   }
                                 },

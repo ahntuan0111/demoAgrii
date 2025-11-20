@@ -25,7 +25,6 @@ import '../bindings/seed_list_binding.dart';
 import '../bindings/select_partner_binding.dart';
 import '../bindings/tool_list_binding.dart';
 import '../bindings/weather_home_binding.dart';
-import '../screens/module/famer/chat_ai_screen.dart';
 import '../screens/module/famer/chat_topic_screen.dart';
 import '../screens/module/famer/chatbox_screen.dart';
 import '../screens/module/famer/checkout_screen.dart';
@@ -165,11 +164,5 @@ class AppPages {
       page: () => const OrderDetailScreen(),
       // (Không cần binding vì nó nhận 'Order' qua arguments)
     ),
-    GetPage(
-      name: AppRoutes.selectPartner,
-      page: () => const SelectPartnerScreen(),
-      binding: SelectPartnerBinding(),
-    ),
-    GetPage(name: AppRoutes.chatAiBox, page: () => const ChatPage()),
   ];
 }

@@ -29,8 +29,8 @@ except ImportError:
 # MongoDB connection
 MONGO_AVAILABLE = False  # Default to False
 if MONGO_AVAILABLE_FLAG:  # Check if pymongo was successfully imported
-    MONGO_URI = os.getenv("MONGO_URI", "mongodb://admin:password@localhost:27017/")
-    DB_NAME = os.getenv("MONGO_DB_NAME", "ai_nha_nong")
+    MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/DemoDB")
+    DB_NAME = os.getenv("MONGO_DB_NAME", "DemoDB")
     try:
         # Handle both local MongoDB and MongoDB Atlas connections
         if "mongodb+srv://" in MONGO_URI:
@@ -63,6 +63,7 @@ else:
 
 # Collection names
 PRODUCTS_COLLECTION = "products"
+MEDICINES_COLLECTION = "medicines"  # New collection for medicines instead of products
 STORES_COLLECTION = "stores"
 FARMERS_COLLECTION = "farmers"
 TREATMENTS_COLLECTION = "treatments"
@@ -558,14 +559,32 @@ def import_data_from_json(json_data: Dict[str, Any]):
                     diseases_collection.insert_many(json_data["diseases"])
                 logger.info(f"Imported {len(json_data['diseases'])} diseases")
 
-        # Import products
+        # Import products (as medicines instead)
         if "products" in json_data:
-            products_collection = get_collection(PRODUCTS_COLLECTION)
-            if products_collection is not None:
-                products_collection.delete_many({})  # Clear existing data
+            medicines_collection = get_collection(MEDICINES_COLLECTION)
+            if medicines_collection is not None:
+                medicines_collection.delete_many({})  # Clear existing data
                 if json_data["products"]:
-                    products_collection.insert_many(json_data["products"])
-                logger.info(f"Imported {len(json_data['products'])} products")
+                    # Transform products to medicines format
+                    medicine_docs = []
+                    for product in json_data["products"]:
+                        medicine = {
+                            "ten_thuoc": product.get("name", ""),
+                            "cay_trong": product.get("category", ""),
+                            "benh_lien_quan": "",  # Will be populated from disease data
+                            "cong_dung": product.get("description", ""),
+                            "lieu_luong": "",  # Will be populated with usage instructions
+                            "gia": product.get("price", 0),
+                            "hinh_anh": (
+                                product.get("images", [""])[0]
+                                if product.get("images")
+                                else ""
+                            ),
+                            "keywords": [],  # Will be populated with keywords
+                        }
+                        medicine_docs.append(medicine)
+                    medicines_collection.insert_many(medicine_docs)
+                logger.info(f"Imported {len(json_data['products'])} medicines")
 
         # Import stores
         if "stores" in json_data:
@@ -812,4 +831,46 @@ def search_products_by_keywords_extended(search_keywords: list, products_collect
         return products
     except Exception as e:
         logger.error(f"Error searching products by keywords: {e}")
+        return []
+
+
+def save_user_keywords(user_input: str, keywords: Dict[str, Any]):
+    """Save user input and extracted keywords to MongoDB for AI learning"""
+    if not MONGO_AVAILABLE:
+        return False
+
+    try:
+        keywords_collection = get_collection(KEYWORDS_COLLECTION)
+        if keywords_collection is None:
+            return False
+
+        # Add timestamp and user input
+        data = {
+            "user_input": user_input,
+            "keywords": keywords,
+            "saved_at": datetime.datetime.now(),
+        }
+
+        # Save the data
+        keywords_collection.insert_one(data)
+        logger.info(f"Saved user keywords for input: {user_input}")
+        return True
+    except Exception as e:
+        logger.error(f"Error saving user keywords to MongoDB: {e}")
+        return False
+
+
+def get_user_keywords():
+    """Get all user keywords from MongoDB for AI learning"""
+    if not MONGO_AVAILABLE:
+        return []
+
+    try:
+        keywords_collection = get_collection(KEYWORDS_COLLECTION)
+        if keywords_collection is None:
+            return []
+
+        return list(keywords_collection.find({}, {"_id": 0}))
+    except Exception as e:
+        logger.error(f"Error loading user keywords from MongoDB: {e}")
         return []

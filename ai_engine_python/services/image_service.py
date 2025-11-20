@@ -109,7 +109,7 @@ def process_plant_disease_image(image_data):
 
                 # Try to get detailed product information from database
                 products_collection = get_collection(PRODUCTS_COLLECTION)
-                if products_collection:
+                if products_collection is not None:
                     product_details = products_collection.find_one(
                         {"ten_sp": product_name}, {"_id": 0}
                     )

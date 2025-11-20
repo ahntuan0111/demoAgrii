@@ -2,11 +2,13 @@ from openai import OpenAI  # pyright: ignore[reportMissingImports]
 from dotenv import load_dotenv  # pyright: ignore[reportMissingImports]
 import os
 import json
+from typing import Dict, List, Any  # Add Dict import
 from services.mongodb_service import (
     get_all_keywords,
     get_all_diseases,
     get_all_crops,
     add_keyword,
+    save_user_keywords,  # Add this import
 )
 
 load_dotenv()
@@ -26,34 +28,77 @@ def extract_keywords(user_input: str):
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         # If no API key, return fallback results immediately
-        return fallback_keyword_extraction(user_input)
+        print("No OpenAI API key found, using fallback extraction")
+        result = fallback_keyword_extraction(user_input)
+        # Save keywords to database for learning
+        save_user_keywords(user_input, result)
+        return result
 
-    client = OpenAI(api_key=api_key)
+    try:
+        client = OpenAI(api_key=api_key)
+    except Exception as e:
+        print(f"Failed to initialize OpenAI client: {e}")
+        result = fallback_keyword_extraction(user_input)
+        # Save keywords to database for learning
+        save_user_keywords(user_input, result)
+        return result
 
     # Get keywords from database for better prompting
-    db_keywords = get_all_keywords()
-    db_diseases = get_all_diseases()
-    db_crops = get_all_crops()
+    try:
+        db_keywords = get_all_keywords()
+        db_diseases = get_all_diseases()
+        db_crops = get_all_crops()
+    except Exception as e:
+        print(f"Failed to get database keywords: {e}")
+        db_keywords = []
+        db_diseases = []
+        db_crops = []
 
-    # Build lists for prompt
+    # Priority crops list - get from database
+    priority_crops_data = get_all_crops()
+    PRIORITY_CROPS = (
+        [crop["name"] for crop in priority_crops_data] if priority_crops_data else []
+    )
+
+    # Disease keywords to identify - get from database
+    disease_keywords_data = get_all_diseases()
+    DISEASE_KEYWORDS = (
+        list(set([disease["name"] for disease in disease_keywords_data]))
+        if disease_keywords_data
+        else []
+    )
+
+    # Build lists for prompt with priority crops first
     disease_list = list(set([d["name"] for d in db_diseases]))[:50]  # Limit to 50
-    crop_list = list(set([c["name"] for c in db_crops]))[:30]  # Limit to 30
+
+    # Prioritize the specified crops in the crop list
+    priority_crop_names = [
+        crop for crop in PRIORITY_CROPS if any(c["name"] == crop for c in db_crops)
+    ]
+    other_crop_names = [c["name"] for c in db_crops if c["name"] not in PRIORITY_CROPS]
+    crop_list = priority_crop_names + other_crop_names
+    crop_list = crop_list[:30]  # Limit to 30
 
     prompt = f"""
 Phân tích câu hỏi của người dùng và trích xuất các từ khóa sau (chỉ trả về JSON, không giải thích):
 
 Câu hỏi: "{user_input}"
 
-Trích xuất các từ khóa:
-- crop: cây trồng (các loại: {', '.join(crop_list)})
-- disease: bệnh (các loại: {', '.join(disease_list)})
-- product: sản phẩm (phân NPK, thuốc trừ sâu, chế phẩm sinh học, phân bón lá, thuốc diệt nấm, phân vi sinh, phân hữu cơ, thuốc trừ bệnh, thuốc trừ cỏ)
-- location: địa điểm (tỉnh thành Việt Nam)
-- action: hành động (tìm, mua, gợi ý, tư vấn, chọn, xem giá, đặt hàng, liên hệ, kiểm tra, so sánh, còn hàng không, mua ở đâu, dùng loại nào, so sánh cách chữa bệnh, cách điều trị, phương pháp khắc phục)
+Danh sách cây trồng: {', '.join(crop_list)}
+Danh sách bệnh: {', '.join(disease_list)}
 
 Quan trọng: Chỉ trích xuất từ khóa nếu chúng thực sự liên quan đến nông nghiệp. 
 Nếu không tìm thấy từ khóa phù hợp, hãy để trống (chuỗi rỗng "").
 Ví dụ: Nếu người dùng chỉ nói "Xin chào" thì tất cả các trường đều để trống.
+
+Trả về kết quả theo định dạng JSON sau:
+{{
+  "crop": "[tên cây trồng từ danh sách trên nếu có]",
+  "disease": "[tên bệnh từ danh sách trên nếu có]",
+  "product": "[tên sản phẩm nếu có]",
+  "location": "[địa điểm nếu có]",
+  "action": "[hành động nếu có]"
+}}
 """
 
     models_to_try = list_models()
@@ -78,6 +123,9 @@ Ví dụ: Nếu người dùng chỉ nói "Xin chào" thì tất cả các trư�
                 result = result.replace("```", "").strip()
 
             keywords = json.loads(result)
+
+            # Log the extracted keywords for debugging
+            print(f"Extracted keywords: {keywords}")
 
             # Add model_used to result
             keywords["model_used"] = model_name
@@ -113,6 +161,8 @@ Ví dụ: Nếu người dùng chỉ nói "Xin chào" thì tất cả các trư�
             ):
                 keywords["model_used"] = "greeting"
 
+            # Save keywords to database for learning
+            save_user_keywords(user_input, keywords)
             return keywords
 
         except json.JSONDecodeError as e:
@@ -123,57 +173,70 @@ Ví dụ: Nếu người dùng chỉ nói "Xin chào" thì tất cả các trư�
             continue
 
     # If all models failed, return fallback keywords
-    return fallback_keyword_extraction(user_input)
+    print("All AI models failed, using fallback extraction")
+    result = fallback_keyword_extraction(user_input)
+    # Save keywords to database for learning
+    save_user_keywords(user_input, result)
+    return result
 
 
-def fallback_keyword_extraction(user_input: str):
+def fallback_keyword_extraction(user_input: str) -> Dict[str, str]:
     """
-    Fast fallback method when AI is not available
-    Uses database lookup for keywords instead of hardcoded lists
+    Fallback method to extract keywords using simple pattern matching
+    Returns dict with keys: crop, disease, product, location, action
     """
-    user_input_lower = user_input.lower()
+    print(f"Fallback extraction for: {user_input}")
 
-    # Get keywords from database
-    db_keywords = get_all_keywords()
-    db_diseases = get_all_diseases()
-    db_crops = get_all_crops()
-
-    # Extract crop
-    crop = ""
-    for crop_item in db_crops:
-        crop_name = crop_item["name"].lower()
-        if crop_name in user_input_lower:
-            crop = crop_item["name"]
-            break
-
-    # Extract disease
-    disease = ""
-    for disease_item in db_diseases:
-        disease_name = disease_item["name"].lower()
-        if disease_name in user_input_lower:
-            disease = disease_item["name"]
-            break
-
-    # Check if this is a pure greeting
-    is_greeting = any(
-        greeting in user_input_lower for greeting in ["xin chào", "chào", "hello", "hi"]
+    # Priority crops list - get from database
+    priority_crops_data = get_all_crops()
+    PRIORITY_CROPS = (
+        [crop["name"] for crop in priority_crops_data] if priority_crops_data else []
     )
 
-    if is_greeting and not crop and not disease:
-        return {
-            "crop": "",
-            "disease": "",
-            "product": "",
-            "location": "",
-            "action": "",
-            "model_used": "greeting",
-        }
+    # Disease keywords to identify - get from database
+    disease_keywords_data = get_all_diseases()
+    DISEASE_KEYWORDS = (
+        list(set([disease["name"] for disease in disease_keywords_data]))
+        if disease_keywords_data
+        else []
+    )
 
-    return {
+    user_input_lower = user_input.lower()
+
+    # Extract crop - prioritize the specified crops in order
+    crop = ""
+    for priority_crop in PRIORITY_CROPS:
+        if priority_crop.lower() in user_input_lower:
+            crop = priority_crop
+            break
+
+    # Extract disease keywords - look for disease-related terms
+    disease = ""
+    for disease_keyword in DISEASE_KEYWORDS:
+        if disease_keyword in user_input_lower:
+            disease = disease_keyword
+            break
+
+    # Simple extraction for other keywords (basic pattern matching)
+    product = ""
+    location = ""
+    action = ""
+
+    # Look for common action verbs
+    action_verbs = ["trồng", "bón", "phun", "tưới", "nhổ", "thu hoạch", "chăm sóc"]
+    for verb in action_verbs:
+        if verb in user_input_lower:
+            action = verb
+            break
+
+    result = {
         "crop": crop,
         "disease": disease,
-        "product": "",
-        "location": "",
-        "action": "",
-        "model_used": "database_lookup",
+        "product": product,
+        "location": location,
+        "action": action,
+        "model_used": "fallback",
     }
+
+    print(f"Fallback extracted keywords: {result}")
+    return result

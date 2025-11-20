@@ -11,19 +11,25 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Import services
 from services.keyword_service import extract_keywords
 from services.mongodb_service import (
-    search_data,
     search_data_by_keywords,
-    search_treatments,
-    load_mock_data,
-    get_all_keywords,
-    get_all_diseases,
-    get_all_crops,
     save_prompt,
-    save_suggestion_data,
+    search_treatments,
     get_all_suggestions,
     get_collection,
     FARMERS_COLLECTION,
     STORES_COLLECTION,
+    load_mock_data,
+    get_all_keywords,
+    get_all_diseases,
+    get_all_crops,
+    save_suggestion_data,
+)
+
+# Import the suggestion service
+from services.suggestion_service import (
+    extract_priority_keywords,
+    search_suggestions_by_keywords,
+    format_suggestions_for_frontend,
 )
 
 # Set up logging
@@ -130,6 +136,10 @@ class AIWithDataRequest(BaseModel):
     location: Optional[Dict[str, Any]] = None
 
 
+class SuggestionRequest(BaseModel):
+    prompt: str
+
+
 # API routes
 @app.get("/")
 async def root():
@@ -141,16 +151,29 @@ async def extract_keywords_endpoint(user_input: UserInput):
     """Extract keywords from user input"""
     try:
         keywords = extract_keywords(user_input.text)
+        # Ensure all required fields are present
+        required_fields = [
+            "crop",
+            "disease",
+            "product",
+            "location",
+            "action",
+            "model_used",
+        ]
+        for field in required_fields:
+            if field not in keywords:
+                keywords[field] = ""
         return KeywordResponse(**keywords)
     except Exception as e:
         logger.error(f"Error extracting keywords: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        # Return a default response instead of raising an exception
+        return KeywordResponse(
+            crop="", disease="", product="", location="", action="", model_used="error"
+        )
 
 
 # Add the missing /ai-with-data endpoint
 from openai import OpenAI  # pyright: ignore[reportMissingImports]
-
-client = OpenAI()
 
 
 @app.post("/ai-with-data")
@@ -160,6 +183,12 @@ async def ai_with_data_endpoint(request: AIWithDataRequest):
         keywords = extract_keywords(user_input.text)
         crop = keywords.get("crop", "")
         disease = keywords.get("disease", "")
+
+        # Save the prompt and keywords for learning
+        save_prompt(request.prompt, keywords)
+
+        # Extract priority keywords for suggestions
+        priority_keywords = extract_priority_keywords(user_input.text)
 
         # Step 1: search DB
         search_results = search_data_by_keywords(keywords)
@@ -176,6 +205,41 @@ async def ai_with_data_endpoint(request: AIWithDataRequest):
                 elif result.get("type") == "farmer":
                     formatted_results += f"{i}. Lão nông: {result.get('product', '')} tại {result.get('location', '')} chuyên về {result.get('crop', '')}\n"
 
+        # Initialize OpenAI client inside the function
+        try:
+            client = OpenAI()
+        except Exception as e:
+            logger.error(f"Failed to initialize OpenAI client: {e}")
+            # Return a response without AI enhancement if OpenAI is not available
+            formatted_results = []
+            if search_results:
+                for result in search_results:
+                    formatted_results.append(
+                        {
+                            "crop": result.get("crop", ""),
+                            "disease": result.get("disease", ""),
+                            "product": result.get("product", ""),
+                            "location": result.get("location", ""),
+                            "farmer_role": result.get("farmer_role", ""),
+                            "action": result.get("action", ""),
+                        }
+                    )
+
+            return {
+                "answer": "Hiện tại dịch vụ AI không khả dụng. Dưới đây là thông tin từ cơ sở dữ liệu của chúng tôi.",
+                "keywords": keywords,
+                "csvResults": formatted_results,
+                "modelUsed": "unavailable",
+                "totalFound": len(formatted_results),
+                "showSuggestions": bool(crop or disease),
+                "suggestions": {
+                    "products": [],
+                    "stores": [],
+                    "farmers": [],
+                    "call_center": [],
+                },
+            }
+
         # Step 3: Create a more natural prompt for AI that combines database results with AI knowledge
         if crop or disease:
             # For agricultural queries with specific keywords
@@ -191,9 +255,9 @@ Dựa trên thông tin từ cơ sở dữ liệu:
 Yêu cầu:
 1. Trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp
 2. Sử dụng kiến thức nông nghiệp của bạn để bổ sung thông tin chi tiết
-3. Giải thích nguyên nhân, cách phòng tránh và cách xử lý nếu liên quan
-4. Highlight từ khóa quan trọng bằng **bold**
-5. Cung cấp lời khuyên thực tế và hữu ích cho người dùng
+3. **Highlight từ khóa quan trọng bằng cách bao quanh chúng với dấu **bold** như ví dụ sau: **sâu đục thân**, **bón phân**, **tưới nước**.**
+4. Cung cấp lời khuyên thực tế và hữu ích cho người dùng
+5. Luôn luôn làm nổi bật tên cây trồng và bệnh cây bằng cách đặt trong dấu **bold**, ví dụ: **lúa**, **đạo ôn**
 """
         else:
             # For general queries or greetings
@@ -206,7 +270,7 @@ Câu trả lời cần dễ hiểu và cung cấp thông tin hữu ích cho ngư
 Yêu cầu:
 1. Trả lời câu hỏi của người dùng một cách tự nhiên và chuyên nghiệp
 2. Sử dụng kiến thức nông nghiệp của bạn để cung cấp thông tin
-3. Highlight từ khóa quan trọng bằng **bold** nếu có
+3. **Highlight từ khóa quan trọng bằng cách bao quanh chúng với dấu **bold** như ví dụ sau: **sâu đục thân**, **bón phân**, **tưới nước**.**
 4. Cung cấp lời khuyên thực tế và hữu ích cho người dùng
 """
 
@@ -292,7 +356,28 @@ Yêu cầu:
         }
 
         # Only show suggestions button when there are meaningful agricultural terms
-        show_suggestions = bool(meaningful_keywords) and len(formatted_results) > 0
+        # Check if we have crop or disease keywords from our priority list
+        show_suggestions = bool(meaningful_keywords) and bool(crop or disease)
+
+        # Log the decision for debugging
+        print(f"Meaningful keywords: {meaningful_keywords}")
+        print(f"Crop: {crop}, Disease: {disease}")
+        print(f"Show suggestions: {show_suggestions}")
+
+        # Get suggestions data if needed
+        suggestions_data = {}
+        if show_suggestions:
+            suggestions = search_suggestions_by_keywords(priority_keywords)
+            suggestions_data = format_suggestions_for_frontend(suggestions)
+            print(f"Suggestions data: {suggestions_data}")
+        else:
+            # Even if we don't show suggestions button, prepare empty data structure
+            suggestions_data = {
+                "products": [],
+                "stores": [],
+                "farmers": [],
+                "call_center": [],
+            }
 
         return {
             "answer": answer,
@@ -301,6 +386,7 @@ Yêu cầu:
             "modelUsed": final_model,
             "totalFound": len(formatted_results),
             "showSuggestions": show_suggestions,
+            "suggestions": suggestions_data,
         }
 
     except Exception as e:
@@ -835,6 +921,25 @@ async def get_suggestions():
         return {"suggestions": suggestions}
     except Exception as e:
         logger.error(f"Error loading suggestions: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/get-suggestions-data")
+async def get_suggestions_data_endpoint(request: SuggestionRequest):
+    """Get suggestion data based on user prompt"""
+    try:
+        # Extract priority keywords from the prompt
+        priority_keywords = extract_priority_keywords(request.prompt)
+
+        # Search for suggestions based on keywords
+        suggestions = search_suggestions_by_keywords(priority_keywords)
+
+        # Format suggestions for frontend
+        formatted_suggestions = format_suggestions_for_frontend(suggestions)
+
+        return {"success": True, "suggestions": formatted_suggestions}
+    except Exception as e:
+        logger.error(f"Error getting suggestions data: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

@@ -8,9 +8,11 @@ import 'package:get/get.dart';
 import '../models/product_model.dart';
 
 class ProductService extends GetxService {
-  final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ ĐẢM BẢO IP NÀY ĐÚNG
-      : 'http://localhost:5000/api/v1';
+  // final String _baseUrl = Platform.isAndroid
+  //     ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ ĐẢM BẢO IP NÀY ĐÚNG
+  //     : 'http://localhost:5000/api/v1';
+
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
 
   final GetStorage _storage = GetStorage();
 

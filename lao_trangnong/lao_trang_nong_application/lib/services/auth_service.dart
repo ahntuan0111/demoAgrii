@@ -5,10 +5,11 @@ import 'package:http/http.dart' as http;
 import 'package:get/get.dart';
 
 class AuthService extends GetxService {
-  final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.144:5000/api/v1' // IP LAN của máy tính
-      : 'http://localhost:5000/api/v1';
+  // final String _baseUrl = Platform.isAndroid
+  //     ? 'http://192.168.0.144:5000/api/v1' // IP LAN của máy tính
+  //     : 'http://localhost:5000/api/v1';
 
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
   final _headers = {'Content-Type': 'application/json'};
 
   /// [API Đăng ký] - Gọi POST /api/v1/auth/register/manager

@@ -58,7 +58,13 @@ dependencies:
   dropdown_button2: ^2.3.9
   url_launcher: ^6.3.2
   dotted_border: ^2.1.0
-  firebase_app_check: ^0.4.1+2
+  flutter_launcher_icons: ^0.14.1
+
+
+flutter_launcher_icons:
+  android: "ic_launcher"
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
 
 dev_dependencies:
   flutter_test:

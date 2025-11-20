@@ -11,11 +11,7 @@ import 'dart:developer' as developer;
 import '../models/order_model.dart'; // Đảm bảo bạn đã import model
 
 class OrderService extends GetxService {
-  final String _baseUrl = kIsWeb
-      ? 'http://localhost:5000/api/v1'  // Web dùng localhost
-      : (Platform.isAndroid
-      ? 'http://192.168.0.144:5000/api/v1' // Android Device dùng IP LAN
-      : 'http://localhost:5000/api/v1');
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
 
   final GetStorage _storage = GetStorage();
 

@@ -1,49 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:lao_trang_nong_application/services/auth_service.dart';
-import 'package:lao_trang_nong_application/services/order_service.dart';
-import 'package:lao_trang_nong_application/services/storage_service.dart';
-import 'package:lao_trang_nong_application/services/user_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+
+import 'services/auth_service.dart';
+import 'services/order_service.dart';
+import 'services/storage_service.dart';
+import 'services/user_service.dart';
 import 'controllers/order_reception_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Khởi tạo GetStorage
+  // 1. Khởi tạo GetStorage
   await GetStorage.init();
 
-  // Khởi tạo Firebase
+  // 2. Khởi tạo Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Đăng ký các service (sử dụng permanent để giữ sống trong toàn bộ vòng đời app)
+  // 3. Đăng ký các service (Giữ nguyên)
   Get.put(AuthService(), permanent: true);
   Get.put(UserService(), permanent: true);
   Get.put(StorageService(), permanent: true);
   Get.put(OrderService(), permanent: true);
 
-
+  // Lưu ý: Controller thường không nên put ở main nếu không dùng xuyên suốt app,
+  // nhưng nếu app của bạn cần nó sống mãi thì giữ lại.
   Get.put(OrderReceptionController(), permanent: true);
-  // 👉 Quan trọng: Gọi runApp sau khi khởi tạo xong tất cả
-  runApp(const MyApp());
+
+  // --- ✅ XỬ LÝ LOGIC ĐIỀU HƯỚNG BAN ĐẦU ---
+  final storage = GetStorage();
+  String initialRoute;
+
+  final bool hasSeenWelcome = storage.read('hasSeenWelcome') ?? false;
+
+  if (!hasSeenWelcome) {
+    initialRoute = AppRoutes.onboarding;
+    await storage.write('hasSeenWelcome', true);
+  } else {
+    final token = storage.read('apiToken');
+    if (token != null) {
+      initialRoute = AppRoutes.homePage; // (Hoặc homeVtnn)
+    } else {
+      initialRoute = AppRoutes.welcome;
+    }
+  }
+  // ------------------------------------
+
+  // Truyền initialRoute vào MyApp
+  runApp(MyApp(initialRoute: initialRoute));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  // Thêm biến để nhận route từ main
+  final String initialRoute;
+
+  const MyApp({super.key, required this.initialRoute});
 
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Agri App',
-      initialRoute: AppRoutes.homePage, // Route đầu tiên
-      getPages: AppPages.routes, // Danh sách route từ GetX
+
+      // --- ✅ DÙNG ROUTE ĐÃ TÍNH TOÁN ---
+      initialRoute: initialRoute,
+      // -------------------------------
+
+      getPages: AppPages.routes,
       theme: ThemeData(
         fontFamily: 'Roboto',
         appBarTheme: const AppBarTheme(

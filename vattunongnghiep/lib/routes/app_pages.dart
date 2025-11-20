@@ -1,5 +1,4 @@
 import 'package:agri_flutter/bindings/location_check_binding.dart';
-import 'package:agri_flutter/bindings/otp_binding.dart';
 import 'package:agri_flutter/bindings/situate_binding.dart';
 import 'package:agri_flutter/bindings/welcome_binding.dart';
 import 'package:agri_flutter/models/product_model.dart';

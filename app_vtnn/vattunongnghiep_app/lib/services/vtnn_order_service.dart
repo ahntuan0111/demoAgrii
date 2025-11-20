@@ -8,9 +8,11 @@ import 'package:flutter/foundation.dart';
 import '../models/vtnn_order_model.dart';
 
 class VtnnOrderService extends GetxService {
-  final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ THAY IP LAN CỦA BẠN
-      : 'http://localhost:5000/api/v1';
+  // final String _baseUrl = Platform.isAndroid
+  //     ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ THAY IP LAN CỦA BẠN
+  //     : 'http://localhost:5000/api/v1';
+
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
 
   final GetStorage _storage = GetStorage();
 

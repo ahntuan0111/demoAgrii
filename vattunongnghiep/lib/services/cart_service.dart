@@ -11,11 +11,7 @@ import '../models/product_model.dart'; // Cần để lấy Product/Variant
 import '../models/variant_model.dart'; // Cần để lấy Product/Variant
 
 class CartService extends GetxService {
-  final String _baseUrl = kIsWeb
-      ? 'http://localhost:5000/api/v1'  // Web dùng localhost
-      : (Platform.isAndroid
-      ? 'http://192.168.14.59:5000/api/v1' // Android Device dùng IP LAN
-      : 'http://localhost:5000/api/v1');   // iOS Simulator dùng localhost
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
 
   final GetStorage _storage = GetStorage();
 

@@ -11,9 +11,11 @@ import 'package:get/get.dart';
 import '../models/manager_order_model.dart';
 
 class OrderService extends GetxService {
-  final String _baseUrl = Platform.isAndroid
-      ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ THAY IP LAN CỦA BẠN
-      : 'http://localhost:5000/api/v1';
+  // final String _baseUrl = Platform.isAndroid
+  //     ? 'http://192.168.0.144:5000/api/v1' // <-- ⚠️ THAY IP LAN CỦA BẠN
+  //     : 'http://localhost:5000/api/v1';
+
+  final String _baseUrl = 'http://103.186.100.42:5000/api/v1';
 
   final GetStorage _storage = GetStorage();
 

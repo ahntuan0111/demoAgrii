@@ -16,6 +16,53 @@
       "api_key": [
         {
           "current_key": "AIzaSyC6y04Bm0pVOS3TPo_Nb7fvLAzrbOun1_o"
+        },
+        {
+          "current_key": "AIzaSyC3bM-Ez2i2G2R7vY6u-fkXa0wJJ1aTceo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398255490644:android:56e3cc62e4414e26a24fc1",
+        "android_client_info": {
+          "package_name": "com.example.lao_trang_nong_application"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6y04Bm0pVOS3TPo_Nb7fvLAzrbOun1_o"
+        },
+        {
+          "current_key": "AIzaSyC3bM-Ez2i2G2R7vY6u-fkXa0wJJ1aTceo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:398255490644:android:d397887f42b20a23a24fc1",
+        "android_client_info": {
+          "package_name": "com.example.vattunongnghiep_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC6y04Bm0pVOS3TPo_Nb7fvLAzrbOun1_o"
+        },
+        {
+          "current_key": "AIzaSyC3bM-Ez2i2G2R7vY6u-fkXa0wJJ1aTceo"
         }
       ],
       "services": {

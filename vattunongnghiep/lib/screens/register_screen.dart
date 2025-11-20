@@ -14,12 +14,17 @@ class RegisterScreen extends GetView<AuthController> {
     return Scaffold(
       backgroundColor: AppColors.white,
       appBar: AppBar(
-        // ... (AppBar giữ nguyên)
+        backgroundColor: Colors.white,
+        elevation: 0,
+        // Thêm nút back để quay lại màn hình OTP nếu muốn
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Get.back(),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
-          // 1. Thêm Form và key
           child: Form(
             key: controller.registerFormKey,
             child: Column(
@@ -28,29 +33,24 @@ class RegisterScreen extends GetView<AuthController> {
                 CustomTextField(
                   hint: 'Tên đầy đủ',
                   controller: controller.fullNameController,
-                  validator: controller.validateFullName, // 2. Thêm validator
+                  validator: controller.validateFullName,
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
                 CustomTextField(
                   hint: 'Tên tài khoản',
-                  // 3. Đổi controller
                   controller: controller.registerUsernameController,
-                  validator: controller.validateUsername, // 4. Thêm validator
+                  validator: controller.validateUsername,
                   textInputAction: TextInputAction.next,
                 ),
                 const SizedBox(height: 12),
-                // 5. Bọc mật khẩu trong Obx
                 Obx(
                       () => CustomTextField(
                     hint: 'Mật khẩu',
-                    // 6. Đổi controller
                     controller: controller.registerPasswordController,
-                    // 7. Dùng .value
                     obscure: controller.isRegisterPasswordHidden.value,
-                    validator: controller.validatePassword, // 8. Thêm validator
+                    validator: controller.validatePassword,
                     textInputAction: TextInputAction.done,
-                    // 9. Thêm icon ẩn/hiện
                     suffixIcon: IconButton(
                       icon: Icon(
                         controller.isRegisterPasswordHidden.value
@@ -63,7 +63,18 @@ class RegisterScreen extends GetView<AuthController> {
                 ),
                 const SizedBox(height: 20),
 
-                // ... (Các nút social giữ nguyên)
+                // Nút Đăng ký (Sẽ không còn xoay vô hạn)
+                Obx(
+                      () => controller.isLoading.value
+                      ? const CircularProgressIndicator(color: AppColors.green)
+                      : CustomButton(
+                    label: 'Đăng ký',
+                    onPressed: controller.register,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // Các nút social
                 _socialButton(
                   label: 'Đăng nhập bằng Zalo',
                   textColor: Colors.black,
@@ -81,18 +92,6 @@ class RegisterScreen extends GetView<AuthController> {
                     Get.snackbar("Thông báo", "Đăng nhập bằng Facebook (demo)");
                   },
                 ),
-                const SizedBox(height: 20),
-
-                // 10. Bọc nút Đăng ký trong Obx
-                Obx(
-                      () => controller.isLoading.value
-                      ? const CircularProgressIndicator(color: AppColors.green)
-                      : CustomButton(
-                    label: 'Đăng ký',
-                    onPressed: controller.register,
-                  ),
-                ),
-
                 const SizedBox(height: 5),
                 TextButton(
                   onPressed: controller.goToLogin,
@@ -109,7 +108,6 @@ class RegisterScreen extends GetView<AuthController> {
     );
   }
 
-  // ... (Widget _socialButton giữ nguyên)
   Widget _socialButton({
     required String label,
     required Color textColor,

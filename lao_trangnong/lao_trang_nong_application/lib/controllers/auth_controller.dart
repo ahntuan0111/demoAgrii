@@ -93,7 +93,7 @@ class AuthController extends GetxController {
       await _storage.write('apiToken', response['token']);
       await _storage.write('user', response['user']);
       Get.snackbar("Thành công", "Đăng nhập thành công!");
-      Get.offAllNamed(AppRoutes.situate); // Chuyển đến SituateScreen
+      Get.offAllNamed(AppRoutes.homePage); // Chuyển đến SituateScreen
     } catch (e) {
       Get.snackbar("Đăng nhập thất bại",
           e.toString().replaceFirst("Exception: ", ""));

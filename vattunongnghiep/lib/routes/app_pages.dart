@@ -4,6 +4,7 @@ import 'package:agri_flutter/bindings/welcome_binding.dart';
 import 'package:agri_flutter/models/product_model.dart';
 import 'package:agri_flutter/routes/app_routes.dart';
 import 'package:agri_flutter/screens/location_check_screen.dart';
+import 'package:agri_flutter/screens/module/famer/chat_ai_screen.dart';
 import 'package:agri_flutter/screens/module/famer/chat_history_screen.dart';
 import 'package:agri_flutter/screens/otp_screen.dart';
 import 'package:agri_flutter/screens/otp_verification_screen.dart';
@@ -164,5 +165,6 @@ class AppPages {
       page: () => const OrderDetailScreen(),
       // (Không cần binding vì nó nhận 'Order' qua arguments)
     ),
+    GetPage(name: AppRoutes.chatAiBox, page: () => const ChatPage()),
   ];
 }
